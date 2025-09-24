@@ -2,12 +2,20 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
 	"gopkg.in/yaml.v2"
 )
+
+// TenantConfig represents configuration for a single tenant
+type TenantConfig struct {
+	Prefix         string `yaml:"prefix"`
+	Password       string `yaml:"password,omitempty"`        // Plain password (not recommended for production)
+	PasswordHash   string `yaml:"password_hash,omitempty"`   // Bcrypt hash of password (recommended)
+	RateLimit      int    `yaml:"rate_limit,omitempty"`      // Optional rate limiting
+	MaxConnections int    `yaml:"max_connections,omitempty"` // Max connections per tenant
+}
 
 // Config holds the proxy configuration
 type Config struct {
@@ -18,8 +26,8 @@ type Config struct {
 	ClusterNodes []string `yaml:"cluster_nodes"`
 
 	// Authentication settings
-	AuthEnabled bool              `yaml:"auth_enabled"`
-	TenantMap   map[string]string `yaml:"tenant_map"`
+	AuthEnabled bool                    `yaml:"auth_enabled"`
+	Tenants     map[string]TenantConfig `yaml:"tenants"`
 
 	// Performance settings
 	MaxConnections int `yaml:"max_connections"`
@@ -30,7 +38,7 @@ type Config struct {
 
 // LoadFromFile loads configuration from a YAML file
 func LoadFromFile(path string) (*Config, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("error reading config file: %w", err)
 	}
@@ -51,17 +59,34 @@ func LoadFromEnv() (*Config, error) {
 		AuthEnabled:    getEnvOrDefault("AUTH_ENABLED", "true") == "true",
 		MaxConnections: 1000, // Default value
 		LogLevel:       getEnvOrDefault("LOG_LEVEL", "info"),
+		Tenants:        make(map[string]TenantConfig),
 	}
 
-	// Parse tenant map from environment
-	tenantMapStr := getEnvOrDefault("TENANT_MAP", "")
-	if tenantMapStr != "" {
-		config.TenantMap = make(map[string]string)
-		pairs := strings.Split(tenantMapStr, ",")
-		for _, pair := range pairs {
-			parts := strings.Split(pair, ":")
-			if len(parts) == 2 {
-				config.TenantMap[parts[0]] = parts[1] + ":"
+	// Parse tenant config from environment
+	// Format: TENANTS=tenant1:prefix:password,tenant2:prefix:passwordhash:hash
+	tenantsStr := getEnvOrDefault("TENANTS", "")
+	if tenantsStr != "" {
+		tenants := strings.Split(tenantsStr, ",")
+		for _, tenantStr := range tenants {
+			parts := strings.Split(tenantStr, ":")
+			if len(parts) >= 2 {
+				username := parts[0]
+				prefix := parts[1]
+				tenant := TenantConfig{
+					Prefix: prefix + ":",
+				}
+
+				// Check if password is provided
+				if len(parts) >= 3 {
+					// If 4th part exists and is "hash", it's a password hash
+					if len(parts) >= 4 && parts[3] == "hash" {
+						tenant.PasswordHash = parts[2]
+					} else {
+						tenant.Password = parts[2]
+					}
+				}
+
+				config.Tenants[username] = tenant
 			}
 		}
 	}
@@ -85,6 +110,10 @@ func validateConfig(config *Config) error {
 
 	if len(config.ClusterNodes) == 0 {
 		return fmt.Errorf("at least one cluster node is required")
+	}
+
+	if config.AuthEnabled && len(config.Tenants) == 0 {
+		return fmt.Errorf("authentication is enabled but no tenants are configured")
 	}
 
 	return nil

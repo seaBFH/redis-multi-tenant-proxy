@@ -3,6 +3,7 @@ package proxy
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,8 +34,8 @@ func NewProxy(cfg *config.Config) (*Proxy, error) {
 		return nil, fmt.Errorf("failed to initialize Redis handler: %w", err)
 	}
 
-	// Initialize tenant manager
-	tenantMgr := tenant.NewManager(cfg.TenantMap, cfg.AuthEnabled)
+	// Initialize tenant manager with the new tenant config
+	tenantMgr := tenant.NewManager(cfg.Tenants, cfg.AuthEnabled)
 
 	return &Proxy{
 		cfg:       cfg,
@@ -117,8 +118,10 @@ func (p *Proxy) handleCommand(conn redcon.Conn, cmd redcon.Command) {
 		cmdName = string(cmd.Args[0])
 	}
 
+	// TODO: check if cmdName is valid Redis command
+
 	// Handle AUTH command specially
-	if len(cmd.Args) >= 3 && string(cmd.Args[0]) == "AUTH" {
+	if len(cmd.Args) >= 3 && strings.ToUpper(cmdName) == "AUTH" {
 		username := string(cmd.Args[1])
 		password := string(cmd.Args[2])
 

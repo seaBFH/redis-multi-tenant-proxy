@@ -32,6 +32,9 @@ func NewCommandHandler(clusterNodes []string) (*CommandHandler, error) {
 		return nil, errors.New("no Redis cluster nodes provided")
 	}
 
+	// log cluster nodes
+	fmt.Printf("Connecting to Redis cluster nodes: %v\n", clusterNodes)
+
 	cluster := redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs: clusterNodes,
 	})

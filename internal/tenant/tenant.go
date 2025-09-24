@@ -3,24 +3,28 @@ package tenant
 import (
 	"errors"
 	"sync"
+
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/seabfh/redis-multi-tenant-proxy/internal/config"
 )
 
 // Manager handles tenant identification and prefix management
 type Manager struct {
-	tenantMap      map[string]string
+	tenants        map[string]config.TenantConfig
 	authRequired   bool
 	connectionAuth map[string]string // Maps connection ID to tenant
 	mu             sync.RWMutex
 }
 
 // NewManager creates a new tenant manager
-func NewManager(tenantMap map[string]string, authRequired bool) *Manager {
-	if tenantMap == nil {
-		tenantMap = make(map[string]string)
+func NewManager(tenants map[string]config.TenantConfig, authRequired bool) *Manager {
+	if tenants == nil {
+		tenants = make(map[string]config.TenantConfig)
 	}
 
 	return &Manager{
-		tenantMap:      tenantMap,
+		tenants:        tenants,
 		authRequired:   authRequired,
 		connectionAuth: make(map[string]string),
 	}
@@ -31,15 +35,29 @@ func (m *Manager) Authenticate(connID, username, password string) (bool, error) 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// In a real implementation, validate credentials against a secure store
-	// For this example, we just check if the tenant exists in our map
-	prefix, exists := m.tenantMap[username]
+	tenant, exists := m.tenants[username]
 	if !exists {
-		return false, errors.New("invalid credentials")
+		return false, errors.New("invalid username")
 	}
 
-	// Store the tenant prefix for this connection
-	m.connectionAuth[connID] = prefix
+	// Validate password
+	if tenant.PasswordHash != "" {
+		// Using bcrypt hash (more secure)
+		if err := bcrypt.CompareHashAndPassword([]byte(tenant.PasswordHash), []byte(password)); err != nil {
+			return false, errors.New("invalid password")
+		}
+	} else if tenant.Password != "" {
+		// Using plain password (less secure)
+		if tenant.Password != password {
+			return false, errors.New("invalid password")
+		}
+	} else {
+		// No password set for this tenant
+		return false, errors.New("tenant has no password configured")
+	}
+
+	// Store the tenant username for this connection
+	m.connectionAuth[connID] = username
 	return true, nil
 }
 
@@ -48,7 +66,7 @@ func (m *Manager) GetPrefix(connID string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	prefix, exists := m.connectionAuth[connID]
+	username, exists := m.connectionAuth[connID]
 	if !exists {
 		if m.authRequired {
 			return "", errors.New("authentication required")
@@ -57,7 +75,8 @@ func (m *Manager) GetPrefix(connID string) (string, error) {
 		return "", nil
 	}
 
-	return prefix, nil
+	// Return the tenant's prefix
+	return m.tenants[username].Prefix, nil
 }
 
 // ConnectionClosed handles connection closure

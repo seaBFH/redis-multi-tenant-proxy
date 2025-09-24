@@ -5,18 +5,13 @@ services:
     build: .
     ports:
       - "6380:6380"
-    environment:
-      - PROXY_LISTEN_ADDR=:6380
-      - REDIS_CLUSTER_NODES=redis-node1:6379,redis-node2:6379,redis-node3:6379
-      - AUTH_ENABLED=true
-      - TENANT_MAP=tenant1:tenant1,tenant2:tenant2,tenant3:tenant3
-      - LOG_LEVEL=info
     networks:
       - redis-net
     depends_on:
-      - redis-node1
-      - redis-node2
-      - redis-node3
+      - redis-cluster-init
+    volumes:
+      - ./config:/etc/redis-proxy:ro
+    restart: unless-stopped
 
   # Redis Cluster setup
   redis-node1:

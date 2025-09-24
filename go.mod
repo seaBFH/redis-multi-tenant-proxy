@@ -6,6 +6,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
 	github.com/tidwall/redcon v1.6.2
+	golang.org/x/crypto v0.42.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

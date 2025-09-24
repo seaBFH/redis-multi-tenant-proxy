@@ -3,16 +3,44 @@ listen_addr: ":6380"
 
 # Redis Cluster configuration
 cluster_nodes:
-  - "localhost:7000"
-  - "localhost:7001"
-  - "localhost:7002"
+  - "127.0.0.1:6379"
+  - "127.0.0.1:6380"
+  - "127.0.0.1:6381"
 
 # Authentication settings
 auth_enabled: true
-tenant_map:
-  tenant1: "tenant1:"
-  tenant2: "tenant2:"
-  tenant3: "tenant3:"
+
+# Tenant configurations
+tenants:
+  tenant1:
+    prefix: "tenant1"
+    # Plain password (not recommended for production)
+    password: "secure_password1"
+    
+  tenant2:
+    prefix: "tenant2"
+    # Bcrypt hashed password (recommended for production)
+    # This is a hash of "secure_password2"
+    password_hash: "$2a$10$CxOSXe2LKT5g.nvBrno2Guz9R3yP6Z/io0xS5ZfAZjQxULoHDtRvW"
+    
+  customer1:
+    prefix: "cust1"
+    password: "customer_password"
+    # Optional settings
+    rate_limit: 1000
+    max_connections: 50
+    
+  development:
+    prefix: "dev"
+    password_hash: "$2a$10$1pTB1FwB.ZY5rZYSUp0OI.S0KW1zhRzQUxJSNYCy2WFQbPfYnAreS"
+    
+  staging:
+    prefix: "stage"
+    password_hash: "$2a$10$9hR8mjZTKTkNzD0Yyut37ONElZzlVMmCJ8SRgZ9.L94J13xky.F6q"
+    
+  production:
+    prefix: "prod"
+    password_hash: "$2a$10$XQiOPG2Fj6GdJsRQxZJVZerugKxGC9Ky0mXyMsrXtFJLhGT8YKJkW"
 
 # Performance settings
 max_connections: 1000
