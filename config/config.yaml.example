@@ -1,0 +1,21 @@
+# Proxy server configuration
+listen_addr: ":6380"
+
+# Redis Cluster configuration
+cluster_nodes:
+  - "localhost:7000"
+  - "localhost:7001"
+  - "localhost:7002"
+
+# Authentication settings
+auth_enabled: true
+tenant_map:
+  tenant1: "tenant1:"
+  tenant2: "tenant2:"
+  tenant3: "tenant3:"
+
+# Performance settings
+max_connections: 1000
+
+# Logging settings
+log_level: "info"

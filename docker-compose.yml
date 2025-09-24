@@ -1,0 +1,104 @@
+version: '3'
+
+services:
+  redis-proxy:
+    build: .
+    ports:
+      - "6380:6380"
+    environment:
+      - PROXY_LISTEN_ADDR=:6380
+      - REDIS_CLUSTER_NODES=redis-node1:6379,redis-node2:6379,redis-node3:6379
+      - AUTH_ENABLED=true
+      - TENANT_MAP=tenant1:tenant1,tenant2:tenant2,tenant3:tenant3
+      - LOG_LEVEL=info
+    networks:
+      - redis-net
+    depends_on:
+      - redis-node1
+      - redis-node2
+      - redis-node3
+
+  # Redis Cluster setup
+  redis-node1:
+    image: redis:7
+    command: ["redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--port", "6379", "--bind", "0.0.0.0", "--cluster-announce-ip", "redis-node1"]
+    networks:
+      redis-net:
+        aliases:
+          - redis-node1
+    ports:
+      - "6379:6379"
+      - "16379:16379"
+    volumes:
+      - redis-node1-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-node2:
+    image: redis:7
+    command: ["redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--port", "6379", "--bind", "0.0.0.0", "--cluster-announce-ip", "redis-node2"]
+    networks:
+      redis-net:
+        aliases:
+          - redis-node2
+    ports:
+      - "6381:6379"
+      - "16381:16379"
+    volumes:
+      - redis-node2-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-node3:
+    image: redis:7
+    command: ["redis-server", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--port", "6379", "--bind", "0.0.0.0", "--cluster-announce-ip", "redis-node3"]
+    networks:
+      redis-net:
+        aliases:
+          - redis-node3
+    ports:
+      - "6382:6379"
+      - "16382:16379"
+    volumes:
+      - redis-node3-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Cluster setup helper
+  redis-cluster-init:
+    image: redis:7
+    depends_on:
+      - redis-node1
+      - redis-node2
+      - redis-node3
+    networks:
+      - redis-net
+    command: >
+      sh -c "
+        apt update && apt install -y net-tools iputils-ping &&
+        echo 'Waiting for Redis nodes to start...' &&
+        sleep 10 &&
+        ping redis-node1 -c 1 &&
+        ping redis-node2 -c 1 &&
+        ping redis-node3 -c 1 &&
+        echo 'Creating Redis Cluster...' &&
+        redis-cli --cluster create redis-node1:6379 redis-node2:6379 redis-node3:6379 --cluster-replicas 0 --cluster-yes
+      "
+
+networks:
+  redis-net:
+    driver: bridge
+
+volumes:
+  redis-node1-data:
+  redis-node2-data:
+  redis-node3-data:
