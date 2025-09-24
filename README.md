@@ -1,6 +1,6 @@
 # Redis Multi-Tenant Proxy
 
-A high-performance Redis proxy server designed for multi-tenant environments. This proxy enables secure tenant isolation through key prefixing while providing seamless Redis cluster support.
+A Redis proxy server designed for multi-tenant environments. This proxy enables secure tenant isolation through key prefixing while providing seamless Redis cluster support.
 
 ## Features
 
@@ -22,13 +22,15 @@ A high-performance Redis proxy server designed for multi-tenant environments. Th
 - Utility commands: `PING`, `INFO`
 
 ### Limitations & Roadmap
+- ❌ **NOT PRODUCTION READY**: This project is in early development and should not be used in production environments
 - ❌ **Cross-node operations not implemented**: Operations spanning multiple Redis nodes are not yet supported
 - 🔄 **Planned features**:
+  - Test and Benchmark
   - Enhanced `MGET` and `MSET` operations with cross-node support
   - `SCAN` command implementation with tenant-aware key iteration
-  - Advanced cluster topology awareness
-  - Rate limiting per tenant
   - Metrics and monitoring endpoints
+  - Command filtering and blacklisting
+  - Rate limiting per tenant
 
 ## Architecture
 
@@ -140,7 +142,7 @@ Each tenant can be configured with:
 Use the included utility to generate secure password hashes:
 
 ```bash
-./bin/hashpassword
+./bin/hashpassword -password=your_password
 # Enter your password when prompted
 # Copy the generated hash to your config file
 ```
@@ -150,62 +152,7 @@ Use the included utility to generate secure password hashes:
 ### Starting the Proxy
 
 ```bash
-# Using config file
-./bin/proxy --config config.yaml
-
-# Using environment variables (if no config file)
-export REDIS_LISTEN_ADDR=":6380"
-export REDIS_CLUSTER_NODES="redis1:6379,redis2:6379,redis3:6379"
-./bin/proxy
-```
-
-### Client Connection
-
-#### Python Example
-
-```python
-import redis
-
-# Connect to the proxy with tenant credentials
-client = redis.Redis(
-    host='localhost',
-    port=6380,
-    username='tenant1',
-    password='secure_password1',
-    decode_responses=True
-)
-
-# All operations are automatically prefixed with "tenant1:"
-client.set('user:123:profile', 'John Doe')  # Key becomes "tenant1:user:123:profile"
-profile = client.get('user:123:profile')     # Retrieves "tenant1:user:123:profile"
-
-# Multi-key operations
-client.mset({
-    'user:123:email': 'john@example.com',
-    'user:123:age': '30'
-})
-
-values = client.mget(['user:123:email', 'user:123:age'])
-print(values)  # ['john@example.com', '30']
-```
-
-#### Node.js Example
-
-```javascript
-const redis = require('redis');
-
-const client = redis.createClient({
-    host: 'localhost',
-    port: 6380,
-    username: 'tenant1',
-    password: 'secure_password1'
-});
-
-await client.connect();
-
-// Tenant-isolated operations
-await client.set('session:abc123', 'user_data');
-const session = await client.get('session:abc123');
+./bin/proxy --config ./config/config.yaml
 ```
 
 ### Command Line Testing
@@ -228,109 +175,7 @@ HGET user:1:profile name
 
 ### Docker Compose
 
-```yaml
-version: '3.8'
-
-services:
-  redis-proxy:
-    build: .
-    ports:
-      - "6380:6380"
-    volumes:
-      - ./config.yaml:/etc/redis-proxy/config.yaml
-    depends_on:
-      - redis-node1
-      - redis-node2
-      - redis-node3
-
-  redis-node1:
-    image: redis:7-alpine
-    ports:
-      - "7001:6379"
-    command: redis-server --cluster-enabled yes --cluster-node-timeout 5000
-
-  redis-node2:
-    image: redis:7-alpine
-    ports:
-      - "7002:6379"
-    command: redis-server --cluster-enabled yes --cluster-node-timeout 5000
-
-  redis-node3:
-    image: redis:7-alpine
-    ports:
-      - "7003:6379"
-    command: redis-server --cluster-enabled yes --cluster-node-timeout 5000
-```
-
-### Production Considerations
-
-1. **Security**: Always use bcrypt password hashes in production
-2. **Monitoring**: Monitor proxy logs for performance and errors
-3. **Scaling**: Deploy multiple proxy instances behind a load balancer
-4. **Redis Cluster**: Ensure proper Redis cluster configuration and monitoring
-5. **Network**: Use secure networks and consider TLS termination at load balancer level
-
-## Development
-
-### Project Structure
-
-```
-.
-├── cmd/
-│   ├── proxy/          # Main proxy application
-│   └── hashpassword/   # Password hashing utility
-├── internal/
-│   ├── config/         # Configuration management
-│   ├── proxy/          # Proxy server implementation
-│   ├── redisops/       # Redis operation handling
-│   └── tenant/         # Tenant management
-├── config/
-│   └── config.yaml     # Example configuration
-├── example/
-│   └── client/         # Example client implementations
-├── Dockerfile          # Container definition
-├── docker-compose.yml  # Development environment
-└── Makefile           # Build targets
-```
-
-### Building and Testing
-
 ```bash
-# Build all binaries
-make bin
-
-# Build Docker image
-make image
-
-# Run tests (when available)
-go test ./...
-
-# Format code
-go fmt ./...
-
-# Install dependencies
-go mod download
+# launch the proxy and a Redis cluster
+docker compose up -d
 ```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## License
-
-[Add your license information here]
-
-## Support
-
-For issues and questions:
-1. Check the [Issues](https://github.com/seabfh/redis-multi-tenant-proxy/issues) page
-2. Create a new issue with detailed information
-3. Include configuration, logs, and steps to reproduce
-
----
-
-**Note**: This project is actively developed with focus on multi-tenant Redis deployments. Cross-node operations and enhanced cluster features are planned for future releases.

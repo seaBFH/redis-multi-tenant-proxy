@@ -14,11 +14,11 @@ redis_client.set('user:1:profile', 'John Doe')  # Actual key: "tenant1:user:1:pr
 profile = redis_client.get('user:1:profile')    # Fetches "tenant1:user:1:profile"
 print(profile)  # "John Doe"
 
-# Multi-key operations work too
-redis_client.mset({
-    'user:1:email': 'john@example.com',
-    'user:1:age': '30'
-})  # Prefixes all keys with "tenant1:"
+# Multi-key operations TODO: not implemented in proxy yet
+# redis_client.mset({
+    # 'user:1:email': 'john@example.com',
+    # 'user:1:age': '30'
+# })  # Prefixes all keys with "tenant1:"
 
-values = redis_client.mget(['user:1:email', 'user:1:age'])
-print(values)  # ['john@example.com', '30']
+# values = redis_client.mget(['user:1:email', 'user:1:age'])
+# print(values)  # ['john@example.com', '30']
