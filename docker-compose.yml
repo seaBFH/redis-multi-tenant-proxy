@@ -85,8 +85,17 @@ services:
         ping redis-node1 -c 1 &&
         ping redis-node2 -c 1 &&
         ping redis-node3 -c 1 &&
-        echo 'Creating Redis Cluster...' &&
-        redis-cli --cluster create redis-node1:6379 redis-node2:6379 redis-node3:6379 --cluster-replicas 0 --cluster-yes
+        
+        echo 'Checking if Redis Cluster already exists...' &&
+        CLUSTER_STATE=$(redis-cli -h redis-node1 cluster info | grep cluster_state | cut -d: -f2 | tr -d '[:space:]') &&
+        
+        if [ \"$${CLUSTER_STATE}\" = \"ok\" ]; then
+          echo 'Redis Cluster is already initialized. Skipping cluster creation.' &&
+          exit 0
+        else
+          echo 'Creating new Redis Cluster...' &&
+          redis-cli --cluster create redis-node1:6379 redis-node2:6379 redis-node3:6379 --cluster-replicas 0 --cluster-yes
+        fi
       "
 
 networks:
