@@ -23,7 +23,7 @@ RUN apk --no-cache add ca-certificates
 
 # Copy binary from builder
 COPY --from=builder /redis-proxy /usr/local/bin/
-COPY --from=builder ./config/config.yaml.example /etc/redis-proxy/config.yaml
+COPY --from=builder /app/config/config.yaml.example /etc/redis-proxy/config.yaml
 
 # Create config directory
 RUN mkdir -p /etc/redis-proxy
