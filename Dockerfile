@@ -1,4 +1,4 @@
-FROM golang:1.25.1 as builder
+FROM golang:1.25.1 AS builder
 
 # Set working directory
 WORKDIR /app
