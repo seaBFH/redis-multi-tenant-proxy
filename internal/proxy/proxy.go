@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/tidwall/redcon"
 
 	"github.com/seabfh/redis-multi-tenant-proxy/internal/config"
@@ -145,6 +147,11 @@ func (p *Proxy) handleCommand(conn redcon.Conn, cmd redcon.Command) {
 	// Process the command
 	result, err := p.redisOps.ProcessCommand(cmd, tenantPrefix)
 	if err != nil {
+		// handle nil reply here
+		if errors.Is(err, redis.Nil) {
+			conn.WriteNull()
+			return
+		}
 		conn.WriteError("ERR " + err.Error())
 		return
 	}
