@@ -6,6 +6,9 @@ cluster_nodes:
   - "127.0.0.1:6379"
   - "127.0.0.1:6380"
   - "127.0.0.1:6381"
+# Optional cluster authentication (if your Redis Cluster requires it)
+cluster_username: ""
+cluster_password: ""
 
 # Authentication settings
 auth_enabled: true

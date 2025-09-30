@@ -31,7 +31,7 @@ type Proxy struct {
 // NewProxy creates a new proxy server
 func NewProxy(cfg *config.Config) (*Proxy, error) {
 	// Initialize Redis command handler
-	redisOps, err := redisops.NewCommandHandler(cfg.ClusterNodes)
+	redisOps, err := redisops.NewCommandHandler(cfg.ClusterNodes, cfg.ClusterUser, cfg.ClusterPassword)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Redis handler: %w", err)
 	}

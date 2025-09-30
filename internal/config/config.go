@@ -24,6 +24,9 @@ type Config struct {
 
 	// Redis Cluster settings
 	ClusterNodes []string `yaml:"cluster_nodes"`
+	// Optional cluster authentication
+	ClusterUser     string `yaml:"cluster_user,omitempty"`
+	ClusterPassword string `yaml:"cluster_password,omitempty"`
 
 	// Authentication settings
 	AuthEnabled bool                    `yaml:"auth_enabled"`

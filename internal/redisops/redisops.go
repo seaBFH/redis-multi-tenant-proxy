@@ -22,12 +22,15 @@ var (
 
 // CommandHandler handles Redis commands
 type CommandHandler struct {
-	cluster *redis.ClusterClient
-	ctx     context.Context
+	cluster      *redis.ClusterClient
+	ctx          context.Context
+	clusterNodes []string
+	username     string
+	password     string
 }
 
 // NewCommandHandler creates a new Redis command handler
-func NewCommandHandler(clusterNodes []string) (*CommandHandler, error) {
+func NewCommandHandler(clusterNodes []string, username, password string) (*CommandHandler, error) {
 	if len(clusterNodes) == 0 {
 		return nil, errors.New("no Redis cluster nodes provided")
 	}
@@ -36,7 +39,9 @@ func NewCommandHandler(clusterNodes []string) (*CommandHandler, error) {
 	fmt.Printf("Connecting to Redis cluster nodes: %v\n", clusterNodes)
 
 	cluster := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs: clusterNodes,
+		Addrs:    clusterNodes,
+		Username: username,
+		Password: password,
 	})
 
 	// Test connection
@@ -46,8 +51,11 @@ func NewCommandHandler(clusterNodes []string) (*CommandHandler, error) {
 	}
 
 	return &CommandHandler{
-		cluster: cluster,
-		ctx:     ctx,
+		cluster:      cluster,
+		ctx:          ctx,
+		clusterNodes: clusterNodes,
+		username:     username,
+		password:     password,
 	}, nil
 }
 

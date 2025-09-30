@@ -6,6 +6,9 @@ cluster_nodes:
   - "redis-node1:6379"
   - "redis-node2:6379"
   - "redis-node3:6379"
+# Optional cluster authentication (if your Redis Cluster requires it)
+cluster_username: ""
+cluster_password: ""
 
 # Authentication settings
 auth_enabled: true
