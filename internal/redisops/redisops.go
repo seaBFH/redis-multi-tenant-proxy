@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,6 +28,7 @@ type CommandHandler struct {
 	clusterNodes []string
 	username     string
 	password     string
+	// TODO: single node connection pool for redirections and cross node commands
 }
 
 // NewCommandHandler creates a new Redis command handler
@@ -57,6 +59,10 @@ func NewCommandHandler(clusterNodes []string, username, password string) (*Comma
 		username:     username,
 		password:     password,
 	}, nil
+}
+
+func (h *CommandHandler) GetAllNodeConnections() map[string]*redis.Client {
+	panic("not implemented")
 }
 
 // ProcessCommand processes a Redis command with tenant prefix
@@ -94,10 +100,67 @@ func (h *CommandHandler) ProcessCommand(cmd redcon.Command, tenantPrefix string)
 		// We could customize the INFO response or forward it
 		return h.cluster.Info(h.ctx).Result()
 
+	case "SCAN":
+		// TODO: validate cursor format
+		// DEBUG: log scan args in string format
+		log.Printf("Original SCAN args: %v", modifiedCmd)
+		// TODO: Modify SCAN command to include tenant prefix
+		// TODO: Run SCAN on all cluster nodes and aggregate results
+		// TODO: new cursor handling
+		return nil, errors.New("SCAN command not yet implemented with tenant prefix")
+
+	case "MGET":
+		keys := modifiedCmd[1:]
+		// prepare a slice for results
+		results := make([]interface{}, len(keys))
+		// run GET for each key (cluster-safe)
+		for i, key := range keys {
+			keyStr := fmt.Sprintf("%v", key)
+			val, err := h.cluster.Get(h.ctx, keyStr).Result()
+			if err == redis.Nil {
+				results[i] = nil
+			} else if err != nil {
+				return nil, err
+			} else {
+				results[i] = val
+			}
+		}
+		return results, nil
+
+	case "MSET":
+		args := modifiedCmd[1:]
+		// pipeline individual SET calls (cluster-safe)
+		pipe := h.cluster.Pipeline()
+		for i := 0; i < len(args); i += 2 {
+			key := args[i]
+			val := args[i+1]
+			keyStr := fmt.Sprintf("%v", key)
+			valStr := fmt.Sprintf("%v", val)
+			pipe.Set(h.ctx, keyStr, valStr, 0)
+		}
+		if _, err := pipe.Exec(h.ctx); err != nil {
+			return nil, err
+		}
+		// MSET returns OK, map that to nil/error
+		return nil, nil
+
 	default:
 		// Forward the modified command to Redis
 		return h.executeCommand(modifiedCmd)
 	}
+}
+
+type NodeCursor struct {
+	NodeID string
+	Cursor int64
+}
+
+func validateMultiNodeCursor(cursor string) bool {
+	panic("not implemented")
+}
+
+func parseMultiNodeCursor(cursor string) (int64, error) {
+	panic("not implemented")
 }
 
 // executeCommand executes a Redis command and handles redirections
