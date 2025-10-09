@@ -74,8 +74,14 @@ make bin
 # Build the Docker image
 make image
 
+# Build for compose
+docker compose build redis-proxy
+
 # Run with Docker Compose
-docker-compose up -d
+docker compose up -d
+
+# Restart redis-proxy
+docker compose up -d redis-proxy
 ```
 
 ## Configuration
@@ -91,6 +97,9 @@ cluster_nodes:
   - "redis-node1:6379"
   - "redis-node2:6379"
   - "redis-node3:6379"
+# Optional cluster authentication (if your Redis Cluster requires it)
+cluster_username: ""
+cluster_password: ""
 
 # Authentication settings
 auth_enabled: true
