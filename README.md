@@ -26,8 +26,8 @@ A Redis proxy server designed for multi-tenant environments. This proxy enables 
 - ❌ **Cross-node operations not implemented**: Operations spanning multiple Redis nodes are not yet supported
 - 🔄 **Planned features**:
   - Test and Benchmark
-  - Enhanced `MGET` and `MSET` operations with cross-node support
-  - `SCAN` command implementation with tenant-aware key iteration
+  - Enhanced `MGET` and `MSET` operations with cross-node support ✅
+  - `SCAN` command implementation with tenant-aware key iteration 🚗
   - Metrics and monitoring endpoints
   - Command filtering and blacklisting
   - Rate limiting per tenant
